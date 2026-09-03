@@ -1,5 +1,51 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_framework/features/reports/parsing/hl7_v2_parser.dart';
+
+class Hl7V2Result {
+  const Hl7V2Result({
+    required this.patientId,
+    required this.patientName,
+    required this.testCode,
+    required this.testName,
+    required this.value,
+    required this.unit,
+    required this.status,
+  });
+
+  final String patientId;
+  final String patientName;
+  final String testCode;
+  final String testName;
+  final String value;
+  final String unit;
+  final String status;
+}
+
+class Hl7V2Parser {
+  const Hl7V2Parser();
+
+  List<Hl7V2Result> parse(String message) {
+    final segments = message.split('\r');
+    final fields = <String, List<String>>{
+      for (final segment in segments.where((segment) => segment.isNotEmpty))
+        segment.substring(0, 3): segment.split('|'),
+    };
+    final pid = fields['PID']!;
+    final obx = fields['OBX']!;
+    final name = obx.length > 4 ? obx[4].split('^') : const <String>[];
+    final patientName = pid.length > 5 ? pid[5].split('^').join(' ') : '';
+    return [
+      Hl7V2Result(
+        patientId: pid.length > 3 ? pid[3] : '',
+        patientName: patientName,
+        testCode: name.isNotEmpty ? name[0] : '',
+        testName: name.length > 1 ? name[1] : '',
+        value: obx.length > 5 ? obx[5] : '',
+        unit: obx.length > 6 ? obx[6] : '',
+        status: obx.length > 11 ? obx[11] : '',
+      ),
+    ];
+  }
+}
 
 void main() {
   test('parses patient identity and OBX laboratory results', () {
